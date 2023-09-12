@@ -35,10 +35,10 @@
 (defn apply-op! [system ch {:as evt :keys [op arg]}]
   (let [[op-var perform-fx!] (binding [*ns* (:*ns* (::impl system))] ;; should come from system
                                (mapv resolve [op 'perform-fx!]))]
-    (prn :apply-op! evt (::op (meta op-var)))
+    #_ (prn :apply-op! evt (::op (meta op-var)))
     (when-not op-var
       (throw (ex-info (format "op `%` could not be resolved" op) {:op op})))
-    
+
     (let [{:keys [time-ms result]}
           (eval/time-ms
            (case (::op (meta op-var))
@@ -61,9 +61,7 @@
 #_(get-session system no-session-ch)
 
 (defn build-system [m]
-  (merge {:!server (atom nil)
-          :!client->session (atom {})}
-         m))
+  (assoc m :!client->session (atom {})))
 
 (defn get-user [req]
   (-> (garden-id/get-user req)
