@@ -102,7 +102,7 @@
                                                                   [:<>
                                                                    [:h2 "📔 What did you work on today?"]
                                                                    [:a {:data-ignore-anchor-click true :href "/login"} "Login"]]))))
-                         :resource->url @config/!asset-map
+                         :resource->url @config/!resource->url
                          :conn-ws? (garden-id/logged-in? req)})}))
 
 (defn wrap-system
