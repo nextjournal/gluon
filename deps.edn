@@ -1,0 +1,3 @@
+{:deps {org.clojure/clojure {:mvn/version "1.12.0-alpha4"}
+        io.github.nextjournal/clerk {:git/sha "a7a191ce08d12656cf74d8da1a997cc9156a58d7"}
+        io.github.nextjournal/garden-id {:git/sha "2fa84ac9166b784bc3665d360c54654b95417fe8"}}}
