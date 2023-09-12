@@ -91,17 +91,14 @@
 
 (defn app-handler
   "The default request handler, only called if no middleware handles the request."
-  [req]
+  [{:as req ::keys [system]}]
   (if (:websocket? req)
     (httpkit/as-channel req (ws-handlers req))
     {:status 200
      :headers {"Content-Type" "text/html"}
-     :body (view/->html {:doc (viewer/present (notebook-layout (clerk/html
-                                                                (if (garden-id/logged-in? req)
-                                                                  [:h3 "Loading…"]
-                                                                  [:<>
-                                                                   [:h2 "📔 What did you work on today?"]
-                                                                   [:a {:data-ignore-anchor-click true :href "/login"} "Login"]]))))
+     :body (view/->html {:doc (viewer/present (if (garden-id/logged-in? req)
+                                                (notebook-layout (clerk/html [:h3 "Loading…"]))
+                                                (render-app system {})))
                          :resource->url @config/!resource->url
                          :conn-ws? (garden-id/logged-in? req)})}))
 
