@@ -14,7 +14,7 @@
                (if current-user
                  [:div
                   [:div {:nextjournal/value session-state}]
-                  #_[:a {:data-ignore-anchor-click true :href "/logout"} "Logout"]] ;; TODO
+                  [:a {:data-ignore-anchor-click true :href "/logout"} "Logout"]]
                  [:a {:data-ignore-anchor-click true :href "/login"} "Login"])]))
 
 (comment
