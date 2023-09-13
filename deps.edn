@@ -2,4 +2,5 @@
         io.github.nextjournal/clerk {:git/sha "0dae460df026080b1b3c923784af579ce7a6bc00"}
         io.github.nextjournal/garden-id {:git/sha "7838815b04c72c0a63f95e9e76da12d4325ceff7"}}
  
- :aliases {:examples {:extra-paths ["examples/counter/src"]}}}
+ :aliases {:examples {:extra-paths ["examples/counter/src"
+                                    "examples/garden-id/src"]}}}

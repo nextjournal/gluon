@@ -15,7 +15,6 @@
 (defn decrement
   {::gluon/op :session}
   [session _]
-  (prn :decrement session)
   (dec session))
 
 (def bootstrap-cljs
