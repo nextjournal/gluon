@@ -1,0 +1,3 @@
+{:deps {io.github.nextjournal/gluon {:local/root "../../"}}
+ :aliases {:nextjournal/garden {:exec-fn nextjournal.gluon/serve!
+                                :exec-args {:ns nextjournal.counter}}}}

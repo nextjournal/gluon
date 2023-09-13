@@ -27,14 +27,15 @@
        (clerk/with-viewers (viewer/add-viewers [empty-header-viewer]))
        clerk/notebook))
 
-(defn render-app [system session]
-  (notebook-layout ((:render-page (::impl system)) system session)))
+(defn render-app [render-page system session]
+  {:pre [(ifn? render-page)]}
+  (notebook-layout (render-page system session)))
 
 (defn get-session [system ch]
   (get @(:!client->session system) ch))
 
-(defn apply-op! [system ch {:as evt :keys [op arg]}]
-  (let [[op-var perform-fx!] (binding [*ns* (:*ns* (::impl system))] ;; should come from system
+(defn apply-op! [{::keys [system impl]} ch {:as evt :keys [op arg]}]
+  (let [[op-var perform-fx!] (binding [*ns* (:ns impl)] ;; should come from system
                                (mapv resolve [op 'perform-fx!]))]
     #_ (prn :apply-op! evt (::op (meta op-var)))
     (when-not op-var
@@ -56,25 +57,29 @@
 
 #_(apply-op! system (first (keys @(:!client->session system))) {:op 'set-selected-month!, :arg 11})
 
-(defn present+send! [system ch]
-  (webserver/send! ch {:type :set-state! :doc (viewer/present (render-app system (get-session system ch)))}))
+(defn present+send! [{::keys [system impl]} ch]
+  (webserver/send! ch {:type :set-state! :doc (viewer/present (render-app ('render-page impl) system (get-session system ch)))}))
 
 #_(get-session system no-session-ch)
 
 (defn build-system [m]
   (assoc m :!client->session (atom {})))
 
-(defn get-user [req]
-  (-> (garden-id/get-user req)
-      ;; TODO: upstream
-      (update :uuid parse-uuid)))
+(defn autobuild []
+  *ns*)
 
-(defn ws-handlers [{:as req ::keys [system]}]
+(defn get-user [req]
+  (cond-> (garden-id/get-user req)
+    (:uuid (garden-id/get-user req))
+    (update :uuid parse-uuid)))
+
+(defn ws-handlers [{:as req ::keys [system impl]}]
   {:on-open (fn [ch]
-              (when (garden-id/logged-in? req)
+              (when (or (not (:garden-id impl))
+                        (garden-id/logged-in? req))
                 ;; TODO: check origin header
-                (swap! (:!client->session system) assoc ch ((:build-session-state (::impl system)) {:current-user (get-user req)}))
-                (present+send! system ch)))
+                (swap! (:!client->session system) assoc ch (('build-session-state impl) {:current-user (get-user req)}))
+                (present+send! req ch)))
    :on-close (fn [ch _reason] (swap! (:!client->session system) dissoc ch))
    :on-receive (fn [sender-ch edn-string]
                  (let [{:as msg :keys [type form]} (edn/read-string edn-string)]
@@ -82,44 +87,103 @@
                      :eval (webserver/send! sender-ch (merge {:type :eval-reply :eval-id (:eval-id msg)}
                                                              (try {:reply (if (not= 'apply-op! (first form))
                                                                             (throw (ex-info "eval is not allowed" {:form form}))
-                                                                            (let [op-result (apply-op! system sender-ch (second form))]
+                                                                            (let [op-result (apply-op! req sender-ch (second form))]
                                                                               (if (contains? op-result ::reply)
                                                                                 (::reply op-result)
-                                                                                (do (present+send! system sender-ch)
+                                                                                (do (present+send! req sender-ch)
                                                                                     op-result))))}
                                                                   (catch Exception e
+                                                                    (prn :on-recieve/error e)
                                                                     {:error (Throwable->map e)})))))))})
 
 (defn app-handler
   "The default request handler, only called if no middleware handles the request."
-  [{:as req ::keys [system]}]
+  [{:as req ::keys [system impl]}]
   (if (:websocket? req)
     (httpkit/as-channel req (ws-handlers req))
     (case (:uri req)
       "/clerk_service_worker.js" (webserver/serve-resource (io/resource (str "public" (:uri req))))
       {:status 200
        :headers {"Content-Type" "text/html"}
-       :body (view/->html {:doc (viewer/present (if (garden-id/logged-in? req)
-                                                  (notebook-layout (clerk/html [:h3 "Loading…"]))
-                                                  (render-app system {})))
+       :body (view/->html {:doc (viewer/present
+                                 (if (:garden-id impl)
+                                   (render-app ('render-page impl) system nil)
+                                   (if (garden-id/logged-in? req)
+                                     (notebook-layout (clerk/html [:h3 "Loading…"]))
+                                     (render-app system nil))))
                            :resource->url @config/!resource->url
-                           :conn-ws? (garden-id/logged-in? req)})})))
+                           :conn-ws? true #_(garden-id/logged-in? req)})})))
 
 (defn wrap-system
-  [handler system]
-  {:pre [(some? system)]}
+  [handler {:keys [system impl]}]
+  {:pre [(some? system)
+         (some? impl)]}
   (fn [req]
-    (handler (assoc req ::system system))))
+    (handler (assoc req ::system system ::impl impl))))
+
 
 (defn wrap-session [handler]
   (session/wrap-session handler {:store (cookie-store)}))
 
-(defn app [system]
+(defn app [config]
   "The gluon app"
-  (-> #'app-handler
-      (wrap-system system)
-      (garden-id/wrap-auth)
-      (wrap-session)))
+  (prn :app/garden-id (:garden-id config) (keys config))
+  (cond-> (wrap-system #'app-handler config)
+    (:garden-id config)
+    (-> (garden-id/wrap-auth)
+        (wrap-session))))
 
-(defn serve! [{:keys [port system] :or {port 8888}}]
-  (httpkit/run-server (app system) {:port port :legacy-return-value? false}))
+(def required-impl-names
+  '#{render-page
+     build-session-state})
+
+(defn build-impl [{:as config :keys [ns]}]
+  (when-let [missing-vars (not-empty (clojure.set/difference required-impl-names (set (keys (ns-publics ns)))))]
+    (throw (ex-info (format "ns `%s` is missing the following vars required by gluon: `%s`" ns missing-vars) {:missing-vars missing-vars})))
+  (-> (ns-publics ns)
+      (select-keys required-impl-names)
+      (merge (select-keys config [:garden-id]))
+      (assoc :ns ns)))
+
+(comment
+  (ns-publics (find-ns 'example.counter))
+  (build-impl (find-ns 'example.counter)))
+
+(defn load-impl-ns [{:as config :keys [ns]}]
+  (when (simple-symbol? ns)
+    (require ns))
+  (build-impl (update config :ns the-ns)))
+
+(comment
+  (load-impl-ns 'example.counter)
+  (load-impl-ns (find-ns 'example.counter))
+  (load-impl-ns 'example.counter-404))
+
+(def default-opts
+  {:port 8888
+   :garden-id false
+   :system {}})
+
+(defn parse-opts [opts]
+  (let [merged-opts (merge default-opts opts)]
+    (when-not (:ns merged-opts)
+      (throw (ex-info "`:ns` is required in opts" {:opts opts})))
+    (-> merged-opts
+        (update :system build-system)
+        (assoc :impl (load-impl-ns merged-opts)))))
+
+(comment
+  ('render-page (:impl (parse-opts {:ns 'example.counter}))))
+
+(defn serve! [opts]
+  (let [{:as config :keys [port]} (parse-opts opts)]
+    {:config config
+     :instance (httpkit/run-server (app config)  {:port port :legacy-return-value? false})}))
+
+(comment
+  (do
+    (some-> 'gluon resolve deref :instance httpkit/server-stop!)
+    (def gluon
+      (serve! {:port 8888 :ns 'example.counter :system {} :garden-id true}))))
+
+
