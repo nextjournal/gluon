@@ -38,7 +38,7 @@
                                (mapv resolve [op 'perform-fx!]))]
     #_ (prn :apply-op! evt (::op (meta op-var)))
     (when-not op-var
-      (throw (ex-info (format "op `%` could not be resolved" op) {:op op})))
+      (throw (ex-info (format "op `%s` could not be resolved" op) {:op op})))
 
     (let [{:keys [time-ms result]}
           (eval/time-ms
