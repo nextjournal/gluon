@@ -1,5 +1,6 @@
 (ns nextjournal.gluon
   (:require [clojure.edn :as edn]
+            [clojure.java.io :as io]
             [clojure.set :as set]
             [editscript.core :as editscript]
             [nextjournal.clerk :as clerk]
@@ -94,13 +95,15 @@
   [{:as req ::keys [system]}]
   (if (:websocket? req)
     (httpkit/as-channel req (ws-handlers req))
-    {:status 200
-     :headers {"Content-Type" "text/html"}
-     :body (view/->html {:doc (viewer/present (if (garden-id/logged-in? req)
-                                                (notebook-layout (clerk/html [:h3 "Loading…"]))
-                                                (render-app system {})))
-                         :resource->url @config/!resource->url
-                         :conn-ws? (garden-id/logged-in? req)})}))
+    (case (:uri req)
+      "/clerk_service_worker.js" (webserver/serve-resource (io/resource (str "public" (:uri req))))
+      {:status 200
+       :headers {"Content-Type" "text/html"}
+       :body (view/->html {:doc (viewer/present (if (garden-id/logged-in? req)
+                                                  (notebook-layout (clerk/html [:h3 "Loading…"]))
+                                                  (render-app system {})))
+                           :resource->url @config/!resource->url
+                           :conn-ws? (garden-id/logged-in? req)})})))
 
 (defn wrap-system
   [handler system]
