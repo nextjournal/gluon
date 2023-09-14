@@ -1,0 +1,4 @@
+{:deps {io.github.nextjournal/gluon {:local/root "../../"}
+        com.datomic/local {:mvn/version "1.0.267"}}
+ :aliases {:nextjournal/garden {:exec-fn nextjournal.gluon/serve!
+                                :exec-args {:ns example.todo-list}}}}

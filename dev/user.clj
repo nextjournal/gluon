@@ -9,7 +9,7 @@
 
 
 (try
-  (def examples (atom {}))
+  (def examples nil)
   
   (def example->opts
     (into {}
@@ -18,7 +18,8 @@
                                     :port (+ 8888 idx)}
                                    opts)]))
           {:counter {}
-           :garden-id {:garden-id true}}))
+           :garden-id {:garden-id true}
+           :todo-list {}}))
 
   (defn stop! []
     (doseq [{:keys [instance]} (-> 'examples resolve deref vals)]
@@ -40,13 +41,10 @@
 
   #_(start!)
   #_(start! #{:counter})
-  
+
+  (start!)
   (clerk/serve! {:port 8887 :browse true})
   (clerk/show! "examples/index.clj")
-  
+
   (catch Exception e
     (prn ::startup-error e)))
-
-
-
-

@@ -14,5 +14,3 @@
 
 {:nextjournal.clerk/visibility {:result :show}}
 (clerk/fragment (mapv example user/examples))
-
-
