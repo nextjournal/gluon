@@ -2,11 +2,16 @@
   {:nextjournal.clerk/visibility {:code :hide :result :hide}}
   (:require [nextjournal.clerk :as clerk]))
 
-;; # Gluon Examples
-(defn example [port]
-  (clerk/html {::clerk/width :full} [:iframe.w-full {:src (str "http://localhost:" port)}]))
+;; # 🪅 Gluon Examples
+(defn example [[name {:as opts :keys [config]}]]
+  (let [url (str "http://localhost:" (:port config))]
+    (clerk/fragment
+     (clerk/html [:div.p-1.font-mono.text-xs [:a {:href url} url]])
+     (clerk/html {::clerk/width :full}
+                 [:iframe.w-full.border {:src url}])))
+  )
 
 {:nextjournal.clerk/visibility {:result :show}}
-(example 8888)
-(example 8889)
+(clerk/fragment (mapv example user/examples))
+
 
