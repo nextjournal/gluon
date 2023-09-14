@@ -125,7 +125,7 @@
 
 (defn render-page [system session-state]
   (clerk/fragment [(hide-result (clerk/eval-cljs bootstrap-cljs))
-                   (clerk/html [:h1.my-10 "📝 Datomic Local Todo List"])
+                   (clerk/html [:h1.my-10 "📝 A Datomic Local Todo List"])
                    input-controls
                    (clerk/with-viewer tasks-viewer (tasks))]))
 
