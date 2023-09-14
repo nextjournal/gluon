@@ -175,8 +175,4 @@
     {:config config
      :instance (httpkit/run-server (app config)  {:port port :legacy-return-value? false})}))
 
-(comment
-  (do
-    (some-> 'gluon resolve deref :instance httpkit/server-stop!)
-    (def gluon
-      (serve! {:port 8888 :ns 'example.counter :system {}}))))
+#_(user/restart!)

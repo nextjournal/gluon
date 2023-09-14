@@ -9,35 +9,38 @@
 
 
 (try
-  (defn start! [examples]
-    (into {}
-          (comp (map-indexed (fn [idx k]
-                               [k {:ns (symbol (str "example." (name k)))
-                                   :port (+ 8888 idx)}]))
-                (map (fn [[k opts]]
-                       [k (gluon/serve! opts)])))
-          examples))
+  (def examples (atom {}))
   
-  (def examples
-    (start! [:counter :garden-id]))
+  (def example->opts
+    (into {}
+          (map-indexed (fn [idx [k opts]]
+                         [k (merge {:ns (symbol (str "example." (name k)))
+                                    :port (+ 8888 idx)}
+                                   opts)]))
+          {:counter {}
+           :garden-id {:garden-id true}}))
 
-  (defn stop!
-    ([] (stop! examples))
-    ([ex]
-     (doseq [{:keys [instance]} (vals examples)]
-       (org.httpkit.server/server-stop! instance))))
+  (defn stop! []
+    (doseq [{:keys [instance]} (-> 'examples resolve deref vals)]
+      (org.httpkit.server/server-stop! instance))
+    (alter-var-root #'examples (constantly nil)))
 
   #_(stop!)
+  
+  (defn start!
+    ([] (start! (keys example->opts)))
+    ([example-keys]
+     (stop!)
+     (def examples
+       (into {}
+             (map (fn [k]
+                    [k (gluon/serve! (example->opts k))]))
+             example-keys))
+     (clerk/recompute!)))
 
-  (defn restart!
-    ([] (alter-var-root #'examples (constantly
-                                    (restart! examples))))
-    ([ex]
-     (stop! ex)
-     (start! (keys examples))))
-
-  #_(restart!)
-
+  #_(start!)
+  #_(start! #{:counter})
+  
   (clerk/serve! {:port 8887 :browse true})
   (clerk/show! "examples/index.clj")
   

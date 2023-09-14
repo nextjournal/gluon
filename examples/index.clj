@@ -1,5 +1,6 @@
 (ns examples.index
-  {:nextjournal.clerk/visibility {:code :hide :result :hide}}
+  {:nextjournal.clerk/visibility {:code :hide :result :hide}
+   :nextjournal.clerk/no-cache true}
   (:require [nextjournal.clerk :as clerk]))
 
 ;; # 🪅 Gluon Examples

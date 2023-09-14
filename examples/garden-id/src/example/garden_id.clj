@@ -16,10 +16,3 @@
                   [:div {:nextjournal/value session-state}]
                   [:a {:data-ignore-anchor-click true :href "/logout"} "Logout"]]
                  [:a {:data-ignore-anchor-click true :href "/login"} "Login"])]))
-
-(comment
-  (some-> 'gluon resolve deref :instance org.httpkit.server/server-stop!)
-  (def gluon
-    (gluon/serve! {:port 8889 :garden-id true :ns *ns*}))
-  (clerk/serve! {:port 8886})
-  )
