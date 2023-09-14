@@ -50,11 +50,7 @@
 
 #_(clerk/html (render-view @!counter-system))
 
-
-
-
 (comment
-  (gluon/serve! {:port 8889 :ns *ns*})
-  (keys (ns-publics *ns*))
-  
-  (serve! {:port 8899}))
+  (do
+    (some-> 'server resolve deref org.httpkit.server/server-stop!)
+    (def server (gluon/serve! {:port 8889 :ns *ns*}))))
