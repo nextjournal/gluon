@@ -9,4 +9,4 @@
 {:nextjournal.clerk/visibility {:result :show}}
 (example 8888)
 (example 8889)
-
+(example 8890)

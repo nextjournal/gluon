@@ -16,13 +16,10 @@
                                    :port (+ 8888 idx)}]))
                 (map (fn [[k opts]]
                        [k (gluon/serve! opts)])))
-          [:counter :garden-id]))
+          [:counter :garden-id :todo-list]))
 
   (clerk/serve! {:port 8887 :browse true})
   (clerk/show! "examples/index.clj")
-  
+
   (catch Exception e
     (prn ::startup-error e)))
-
-
-
