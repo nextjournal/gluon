@@ -1,1 +1,2 @@
-{:project "gluon-todo-list"}
+{:project "gluon-todo-list"
+ :deploy-strategy :restart}
