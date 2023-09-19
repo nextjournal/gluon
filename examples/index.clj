@@ -12,7 +12,7 @@
                   [:iframe.w-full.rounded-md.border.shadow-lg
                    {:src url
                     :style {:min-height 170}}]
-                  [:div.px-6.py-2.font-mono.text-xs.text-right [:a {:href url} url]]])))
+                  [:div.px-6.py-2.font-sans.text-xs.text-right [:a {:href url} url]]])))
   )
 
 {:nextjournal.clerk/visibility {:result :show}}
