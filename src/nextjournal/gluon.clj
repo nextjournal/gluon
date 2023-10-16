@@ -55,6 +55,12 @@
         result
         {:applied-op op :time-ms time-ms}))))
 
+(defn sync-swap! [{::keys [system impl]} ch msg]
+  (when-some [sswap! (get impl 'sync-swap!)]
+    (let [ret (sswap! system (get-session system ch) msg)]
+      (when (and (map? ret) (contains? ret ::reply))
+        (webserver/send! ch (::reply ret))))))
+
 #_(apply-op! system (first (keys @(:!client->session system))) {:op 'set-selected-month!, :arg 11})
 
 (defn present+send! [{::keys [system impl]} ch]
@@ -91,7 +97,8 @@
                                                                                     op-result))))}
                                                                   (catch Exception e
                                                                     (prn :on-recieve/error e)
-                                                                    {:error (Throwable->map e)})))))))})
+                                                                    {:error (Throwable->map e)}))))
+                     :swap! (sync-swap! req sender-ch msg))))})
 
 (defn app-handler
   "The default request handler, only called if no middleware handles the request."
