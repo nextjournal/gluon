@@ -51,6 +51,9 @@
                                                 (::system-fn (meta op-var)))
                                       (get-session system ch) arg))
              (throw (ex-info (format "`%s` is not whitelisted as allowed operation, missing `%s` on var metadata." op-var ::op) {:op-var op-var :meta (meta op-var)}))))]
+      ;; allows e.g. to swap session without refreshing the page
+      (when-some [new-session (get result ::session)]
+        (swap! (:!client->session system) assoc ch new-session))
       (if (contains? result ::reply)
         result
         {:applied-op op :time-ms time-ms}))))
